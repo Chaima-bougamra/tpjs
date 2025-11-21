@@ -1,27 +1,144 @@
-const form = document.getElementById("personForm");
-const tableBody = document.getElementById("tableBody");
+// --------------------- DATA ---------------------
+const Client = [
+  { id: 1, nom: "Ali", age: 25 },
+  { id: 2, nom: "Salah", age: 35 },
+  { id: 3, nom: "Ahmed", age: 27 }
+];
 
-form.addEventListener("submit", function(event) {
-    event.preventDefault();
+let reservations = [
+  { id: 101, clientId: 1, chambre: "suite", prix: 300 },
+  { id: 102, clientId: 2, chambre: "standard", prix: 150 },
+  { id: 103, clientId: 1, chambre: "deluxe", prix: 200 },
+  { id: 104, clientId: 3, chambre: "economique", prix: 80 }
+];
 
-    const nom = document.getElementById("nom").value;
-    const prenom = document.getElementById("prenom").value;
+// --------------------- AFFICHAGE DES RÉSERVATIONS ---------------------
+function AfficheRes() {
+  let html = `
+  <table>
+    <tr>
+      <th>ID</th>
+      <th>ID Client</th>
+      <th>Chambre</th>
+      <th>Prix</th>
+      <th>Action</th>
+    </tr>`;
 
-    const row = document.createElement("tr");
+  for (let r of reservations) {
+    html += `
+      <tr>
+        <td>${r.id}</td>
+        <td>${r.clientId}</td>
+        <td>${r.chambre}</td>
+        <td>${r.prix} DT</td>
+        <td><button onclick="supprimerRes(${r.id})" style="background:#e74c3c">Supprimer</button></td>
+      </tr>`;
+  }
 
-    row.innerHTML = `
-        <td>${nom}</td>
-        <td>${prenom}</td>
-        <td><button class="btn-delete">Supprimer</button></td>
-    `;
+  html += "</table>";
+  document.getElementById("reservationsTable").innerHTML = html;
+}
 
-    tableBody.appendChild(row);
+// --------------------- SUPPRESSION ---------------------
+function supprimerRes(id) {
+  reservations = reservations.filter(r => r.id !== id);
+  AfficheRes();
+  AfficheDepenses();
+}
 
-    form.reset();
-});
+// --------------------- FORMULAIRE ---------------------
+function afficherFormulaire() {
+  const formHtml = `
+    <form id="reservationForm">
+      <h3>Nouvelle réservation</h3>
+      <label>ID Réservation:</label><br>
+      <input type="number" id="id" required><br><br>
 
-tableBody.addEventListener("click", function(e) {
-    if (e.target.classList.contains("btn-delete")) {
-        e.target.parentElement.parentElement.remove();
-    }
-});
+      <label>ID Client:</label><br>
+      <input type="number" id="clientId" required><br><br>
+
+      <label>Chambre:</label><br>
+      <input type="text" id="chambre" required><br><br>
+
+      <label>Prix:</label><br>
+      <input type="number" id="prix" required><br><br>
+
+      <button type="submit">Valider</button>
+    </form>`;
+
+  document.getElementById("formulaireContainer").innerHTML = formHtml;
+
+  document.getElementById("reservationForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    reservations.push({
+      id: parseInt(document.getElementById("id").value),
+      clientId: parseInt(document.getElementById("clientId").value),
+      chambre: document.getElementById("chambre").value,
+      prix: parseFloat(document.getElementById("prix").value)
+    });
+
+    AfficheRes();
+    AfficheDepenses();
+    document.getElementById("formulaireContainer").innerHTML = "";
+  });
+}
+
+// --------------------- TOTAL DÉPENSES ---------------------
+function CalculerTotal(clients, reservations) {
+  return clients.map(client => {
+    const depenses = reservations.filter(res => res.clientId === client.id);
+    const totalPaye = depenses.reduce((sum, res) => sum + res.prix, 0);
+    return { id: client.id, nom: client.nom, totalPaye };
+  });
+}
+
+function AfficheDepenses() {
+  const resultats = CalculerTotal(Client, reservations);
+  let html = `
+  <table>
+    <tr>
+      <th>ID</th>
+      <th>Nom</th>
+      <th>Total Payé</th>
+    </tr>`;
+
+  for (let r of resultats) {
+    html += `<tr><td>${r.id}</td><td>${r.nom}</td><td>${r.totalPaye} DT</td></tr>`;
+  }
+
+  html += "</table>";
+  document.getElementById("depensesTable").innerHTML = html;
+  document.getElementById("errorMessage").textContent = "";
+}
+
+// --------------------- RECHERCHE ---------------------
+function trouvCli() {
+  const idSaisi = parseInt(document.getElementById("idClient").value);
+  const client = Client.find(c => c.id === idSaisi);
+
+  if (!client) {
+    document.getElementById("errorMessage").textContent = "Client non trouvé.";
+    document.getElementById("depensesTable").innerHTML = "";
+    return;
+  }
+
+  const totalPaye = reservations
+    .filter(r => r.clientId === idSaisi)
+    .reduce((sum, r) => sum + r.prix, 0);
+
+  let html = `
+  <table>
+    <tr><th>ID</th><th>Nom</th><th>Total Payé</th></tr>
+    <tr><td>${client.id}</td><td>${client.nom}</td><td>${totalPaye} DT</td></tr>
+  </table>`;
+
+  document.getElementById("depensesTable").innerHTML = html;
+  document.getElementById("errorMessage").textContent = "";
+}
+
+// --------------------- INIT ---------------------
+window.onload = function() {
+  AfficheRes();
+  AfficheDepenses();
+};
